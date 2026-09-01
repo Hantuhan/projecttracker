@@ -84,10 +84,10 @@ Do **not** upload `config/config.php` from your local machine.
 
 ## Step 4 — Secure after install
 
-1. **Delete** the `install/` folder in File Manager (recommended), or leave it locked (installer blocks re-runs once `config/config.php` exists)
-2. Enable **SSL** in hPanel if not already (Let’s Encrypt — free)
-3. Log in → **Settings** → configure SMTP (see below)
-4. **Team** → invite your members
+1. Enable **SSL** in hPanel if not already (Let’s Encrypt — free)
+2. Log in → **Settings** → configure SMTP (see below)
+3. **Team** → invite your members
+4. Installer auto-blocks after setup (`config/config.php` exists). Optional: delete the `install/` folder in File Manager for extra safety.
 
 ---
 

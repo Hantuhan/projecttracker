@@ -78,6 +78,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $configExists = file_exists(__DIR__ . '/../config/config.php');
 $locked = file_exists($lockFile) || $configExists;
+
+// Hide installer from the public once the app is configured
+if ($locked && !$success) {
+    http_response_code(404);
+    exit;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

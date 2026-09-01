@@ -2,3 +2,11 @@
 <Files ".installed">
   Require all denied
 </Files>
+
+# Deny the whole install folder after setup (config or lock file exists)
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{DOCUMENT_ROOT}/config/config.php -f [OR]
+RewriteCond %{DOCUMENT_ROOT}/install/.installed -f
+RewriteRule ^ - [F,L]
+</IfModule>
