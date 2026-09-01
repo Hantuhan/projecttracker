@@ -1,0 +1,7 @@
+# Block direct access to config sample is fine; protect real config via folder rules
+<IfModule mod_authz_core.c>
+  Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+  Deny from all
+</IfModule>

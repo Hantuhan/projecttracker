@@ -1,0 +1,13 @@
+# Pretty defaults for Hostinger Apache
+DirectoryIndex index.php login.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+</IfModule>
+
+# Disallow access to sensitive paths if misconfigured
+<IfModule mod_authz_core.c>
+  <FilesMatch "^\.">
+    Require all denied
+  </FilesMatch>
+</IfModule>
