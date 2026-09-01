@@ -1,0 +1,19 @@
+{
+  "name": "projecttracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Team project tracker — PHP + MySQL for Hostinger (dashboard, kanban, list, SMTP, team invites)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hantuhan/projecttracker.git"
+  },
+  "keywords": ["project-tracker", "kanban", "php", "hostinger"],
+  "license": "UNLICENSED",
+  "scripts": {
+    "package": "bash scripts/package-hostinger.sh",
+    "smoke": "bash scripts/smoke.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
