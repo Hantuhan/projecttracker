@@ -31,8 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('projects.php');
     }
 
-    if ($action === 'update' && $user['role'] === 'admin') {
+    if ($action === 'update') {
         $id = (int) ($_POST['id'] ?? 0);
+        if (!can_manage_project($pdo, $user, $id)) {
+            flash('error', 'You cannot edit this project.');
+            redirect('projects.php');
+        }
         $name = trim($_POST['name'] ?? '');
         $description = trim($_POST['description'] ?? '');
         $color = $_POST['color'] ?? '#2563eb';
@@ -49,6 +53,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$name, $description ?: null, $color, $status, $id]);
 
         $memberIds = array_map('intval', $_POST['members'] ?? []);
+        // Always keep creator as member
+        $creatorStmt = $pdo->prepare('SELECT created_by FROM projects WHERE id = ?');
+        $creatorStmt->execute([$id]);
+        $creatorId = (int) $creatorStmt->fetchColumn();
+        if ($creatorId > 0) {
+            $memberIds[] = $creatorId;
+        }
         $pdo->prepare('DELETE FROM project_members WHERE project_id = ?')->execute([$id]);
         $ins = $pdo->prepare('INSERT INTO project_members (project_id, user_id) VALUES (?, ?)');
         foreach (array_unique($memberIds) as $mid) {
@@ -124,7 +135,7 @@ require __DIR__ . '/includes/header.php';
               <a href="kanban.php?project=<?= (int) $p['id'] ?>">Kanban</a>
               <a href="list.php?project=<?= (int) $p['id'] ?>">List</a>
             </div>
-            <?php if ($user['role'] === 'admin'): ?>
+            <?php if (can_manage_project($pdo, $user, (int) $p['id'])): ?>
             <details>
               <summary>Edit / members</summary>
               <form method="post" class="stack nested">

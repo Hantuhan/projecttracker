@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
             $invitee = ['name' => $name, 'email' => $email];
             notify_user_invite($pdo, $invitee, $tempPass, $user);
-            flash('success', 'Invite sent. User is pending approval. Temp password: ' . $tempPass);
+            flash('success', 'Invite created as pending. Temp password emailed if SMTP is set (also shown once): ' . $tempPass);
         } catch (PDOException $e) {
             flash('error', 'Could not invite. Email may already exist.');
         }

@@ -113,20 +113,95 @@ function user_can_access_project(PDO $pdo, int $userId, string $role, int $proje
 function accessible_projects(PDO $pdo, array $user): array
 {
     if ($user['role'] === 'admin') {
-        return $pdo->query(
+        $rows = $pdo->query(
             "SELECT * FROM projects WHERE status = 'active' ORDER BY name"
         )->fetchAll();
+    } else {
+        $stmt = $pdo->prepare(
+            "SELECT DISTINCT p.* FROM projects p
+             LEFT JOIN project_members pm ON pm.project_id = p.id
+             WHERE p.status = 'active'
+               AND (pm.user_id = ? OR p.created_by = ?)
+             ORDER BY p.name"
+        );
+        $stmt->execute([$user['id'], $user['id']]);
+        $rows = $stmt->fetchAll();
     }
-    $stmt = $pdo->prepare(
-        "SELECT DISTINCT p.* FROM projects p
-         LEFT JOIN project_members pm ON pm.project_id = p.id
-         WHERE p.status = 'active'
-           AND (pm.user_id = ? OR p.created_by = ?)
-         ORDER BY p.name"
-    );
-    $stmt->execute([$user['id'], $user['id']]);
-    return $stmt->fetchAll();
+    foreach ($rows as &$row) {
+        $row['id'] = (int) $row['id'];
+    }
+    return $rows;
 }
+
+function project_ids(array $projects): array
+{
+    return array_map('intval', array_column($projects, 'id'));
+}
+
+function can_manage_project(PDO $pdo, array $user, int $projectId): bool
+{
+    if ($user['role'] === 'admin') {
+        return true;
+    }
+    $stmt = $pdo->prepare('SELECT created_by FROM projects WHERE id = ?');
+    $stmt->execute([$projectId]);
+    $createdBy = $stmt->fetchColumn();
+    return $createdBy !== false && (int) $createdBy === (int) $user['id'];
+}
+
+function assert_active_assignee(PDO $pdo, ?int $assigneeId): void
+{
+    if ($assigneeId === null) {
+        return;
+    }
+    $stmt = $pdo->prepare("SELECT 1 FROM users WHERE id = ? AND status = 'active'");
+    $stmt->execute([$assigneeId]);
+    if (!$stmt->fetchColumn()) {
+        json_response(['error' => 'Assignee must be an active user'], 422);
+    }
+}
+
+function normalize_due_date(mixed $due): ?string
+{
+    if ($due === null || $due === '') {
+        return null;
+    }
+    $due = (string) $due;
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $due)) {
+        json_response(['error' => 'Invalid due date'], 422);
+    }
+    return $due;
+}
+
+function run_sql_file(PDO $pdo, string $path): void
+{
+    $sql = file_get_contents($path);
+    if ($sql === false) {
+        throw new RuntimeException('Could not read SQL file: ' . $path);
+    }
+    // Strip line comments and split on semicolons for Hostinger PDO compatibility
+    $lines = preg_split('/\R/', $sql) ?: [];
+    $buffer = '';
+    foreach ($lines as $line) {
+        $trim = ltrim($line);
+        if ($trim === '' || str_starts_with($trim, '--')) {
+            continue;
+        }
+        $buffer .= $line . "\n";
+        if (str_ends_with(rtrim($line), ';')) {
+            $stmt = trim($buffer);
+            $buffer = '';
+            if ($stmt !== '') {
+                $pdo->exec($stmt);
+            }
+        }
+    }
+    $tail = trim($buffer);
+    if ($tail !== '') {
+        $pdo->exec($tail);
+    }
+}
+
 
 function fetch_subtasks(PDO $pdo, int $taskId): array
 {

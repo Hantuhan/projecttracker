@@ -41,8 +41,11 @@ In phpMyAdmin, run `install/migrate_subtasks.sql` (adds subtasks, comments, user
 3. Pending users cannot log in; they see a clear message.
 4. Sidebar shows a badge on **Team** when approvals are waiting.
 
-## Requirements
+## Local smoke test (Docker)
 
-- PHP 8.0+ (8.1/8.2 recommended)
-- MySQL 5.7+ / MariaDB
-- OpenSSL / sockets for SMTP (default on Hostinger)
+```bash
+docker compose up -d --build
+./scripts/smoke.sh
+```
+
+App: http://localhost:8080 — installer creates admin `admin@example.com` / `secret12` on first run.

@@ -70,14 +70,18 @@
       commentList.innerHTML = '<li class="muted tiny">No comments yet.</li>';
       return;
     }
+    const me = window.CURRENT_USER || {};
     currentComments.forEach((c) => {
       const li = document.createElement('li');
       li.className = 'comment-item';
       const when = (c.created_at || '').slice(0, 16);
+      const canDelete = me.role === 'admin' || Number(c.user_id) === Number(me.id);
       li.innerHTML =
         '<div class="comment-meta"><strong></strong><span class="muted tiny"></span>' +
-        '<button type="button" class="icon-btn comment-del" data-del-comment="' + c.id + '" aria-label="Delete">&times;</button></div>' +
-        '<p class="comment-body"></p>';
+        (canDelete
+          ? '<button type="button" class="icon-btn comment-del" data-del-comment="' + c.id + '" aria-label="Delete">&times;</button>'
+          : '') +
+        '</div><p class="comment-body"></p>';
       li.querySelector('strong').textContent = c.user_name || 'User';
       li.querySelector('.muted').textContent = when;
       li.querySelector('.comment-body').textContent = c.body;
@@ -320,13 +324,20 @@
       if (!dragged) return;
       const status = zone.dataset.dropZone;
       const id = Number(dragged.dataset.taskId);
-      const siblings = [...zone.querySelectorAll('.kanban-card')];
-      const position = siblings.indexOf(dragged) >= 0 ? siblings.indexOf(dragged) : siblings.length;
-      zone.appendChild(dragged);
+      const overCard = e.target.closest('.kanban-card');
+      if (overCard && overCard !== dragged && zone.contains(overCard)) {
+        const rect = overCard.getBoundingClientRect();
+        const before = e.clientY < rect.top + rect.height / 2;
+        zone.insertBefore(dragged, before ? overCard : overCard.nextSibling);
+      } else {
+        zone.appendChild(dragged);
+      }
+      const orderedIds = [...zone.querySelectorAll('.kanban-card')].map((c) => Number(c.dataset.taskId));
+      const position = orderedIds.indexOf(id);
       try {
         await api('api/tasks.php', {
           method: 'POST',
-          body: JSON.stringify({ id, status, position }),
+          body: JSON.stringify({ id, status, position, ordered_ids: orderedIds }),
         });
         board.querySelectorAll('.kanban-col').forEach((col) => {
           const count = col.querySelectorAll('.kanban-card').length;

@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+// Harden session cookie before starting
+$secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+session_set_cookie_params([
+    'lifetime' => 0,
+    'path' => '/',
+    'secure' => $secure,
+    'httponly' => true,
+    'samesite' => 'Lax',
+]);
 session_start();
 
 $configPath = __DIR__ . '/config.php';
@@ -37,3 +46,4 @@ try {
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/mailer.php';
+require_once __DIR__ . '/../includes/reminders.php';

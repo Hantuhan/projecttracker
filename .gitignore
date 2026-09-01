@@ -1,3 +1,4 @@
+install/.installed
 config/config.php
 .DS_Store
 *.log

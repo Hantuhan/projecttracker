@@ -5,23 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/config/bootstrap.php';
 $user = require_admin();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    verify_csrf();
-    $action = $_POST['action'] ?? 'save';
-
-    if ($action === 'test') {
-        $to = $user['email'];
-        $ok = send_smtp_mail(
-            $pdo,
-            $to,
-            $user['name'],
-            'Project Tracker SMTP test',
-            '<p>SMTP is working. Task update emails will send from this server.</p>'
-        );
-        flash($ok ? 'success' : 'error', $ok ? 'Test email sent to ' . $to : 'Test email failed. Check SMTP settings and Hostinger mail logs.');
-        redirect('settings.php');
-    }
-
+function save_settings_from_post(PDO $pdo): void
+{
     $keys = [
         'app_name',
         'smtp_host',
@@ -44,6 +29,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             continue;
         }
         set_setting($pdo, $key, trim((string) ($_POST[$key] ?? '')));
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verify_csrf();
+    $action = $_POST['action'] ?? 'save';
+
+    // Always persist form values first so Test uses what you just typed
+    save_settings_from_post($pdo);
+
+    if ($action === 'test') {
+        $to = $user['email'];
+        $ok = send_smtp_mail(
+            $pdo,
+            $to,
+            $user['name'],
+            'Project Tracker SMTP test',
+            '<p>SMTP is working. Task update emails will send from this server.</p>'
+        );
+        flash(
+            $ok ? 'success' : 'error',
+            $ok
+                ? 'Settings saved. Test email sent to ' . $to
+                : 'Settings saved, but test email failed. Check SMTP details and Hostinger mail logs.'
+        );
+        redirect('settings.php');
     }
 
     flash('success', 'Settings saved.');
@@ -107,7 +118,7 @@ require __DIR__ . '/includes/header.php';
 
     <div class="modal-actions">
       <button class="btn btn-primary" type="submit">Save settings</button>
-      <button class="btn" type="submit" name="action" value="test">Send test email</button>
+      <button class="btn" type="submit" name="action" value="test">Save &amp; send test email</button>
     </div>
   </form>
 </section>

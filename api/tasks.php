@@ -67,7 +67,8 @@ if ($method === 'POST' && empty($input['id'])) {
         $priority = 'medium';
     }
     $assigneeId = !empty($input['assignee_id']) ? (int) $input['assignee_id'] : null;
-    $due = !empty($input['due_date']) ? $input['due_date'] : null;
+    assert_active_assignee($pdo, $assigneeId);
+    $due = normalize_due_date($input['due_date'] ?? null);
     $description = trim((string) ($input['description'] ?? '')) ?: null;
 
     $posStmt = $pdo->prepare('SELECT COALESCE(MAX(position), 0) + 1 FROM tasks WHERE project_id = ? AND status = ?');
@@ -146,9 +147,10 @@ foreach ($map as $key => $col) {
     }
     if ($key === 'assignee_id') {
         $val = $val === '' || $val === null ? null : (int) $val;
+        assert_active_assignee($pdo, $val);
     }
     if ($key === 'due_date') {
-        $val = $val === '' || $val === null ? null : $val;
+        $val = normalize_due_date($val);
     }
     if ($key === 'position') {
         $val = (int) $val;
@@ -163,6 +165,21 @@ if (!$fields) {
 
 $params[] = $id;
 $pdo->prepare('UPDATE tasks SET ' . implode(', ', $fields) . ' WHERE id = ?')->execute($params);
+
+// Renumber siblings when kanban provides ordered_ids for the target column
+if (!empty($input['ordered_ids']) && is_array($input['ordered_ids']) && !empty($input['status'])) {
+    $status = $input['status'];
+    if (in_array($status, ['todo', 'in_progress', 'review', 'done'], true)) {
+        $upd = $pdo->prepare('UPDATE tasks SET position = ?, status = ? WHERE id = ? AND project_id = ?');
+        foreach (array_values($input['ordered_ids']) as $i => $taskId) {
+            $tid = (int) $taskId;
+            if ($tid > 0) {
+                $upd->execute([$i, $status, $tid, (int) $task['project_id']]);
+            }
+        }
+    }
+}
+
 $updated = fetch_task($pdo, $id);
 
 $newAssignee = $updated['assignee_id'] ? (int) $updated['assignee_id'] : null;

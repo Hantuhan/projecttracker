@@ -6,7 +6,7 @@ require_once __DIR__ . '/config/bootstrap.php';
 $user = require_login();
 
 $projects = accessible_projects($pdo, $user);
-$projectIds = array_column($projects, 'id');
+$projectIds = project_ids($projects);
 
 $stats = [
     'projects' => count($projects),
@@ -77,7 +77,7 @@ require __DIR__ . '/includes/header.php';
     <h1>Dashboard</h1>
     <p class="muted">Hello, <?= e($user['name']) ?>. Here’s where things stand.</p>
   </div>
-  <button class="btn btn-primary" type="button" data-open-task>New task</button>
+  <button class="btn btn-primary" type="button" data-open-task <?= !$projects ? 'disabled' : '' ?>>New task</button>
 </div>
 
 <section class="stat-grid">

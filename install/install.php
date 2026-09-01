@@ -7,8 +7,14 @@ require_once __DIR__ . '/../config/bootstrap.php';
 $installed = false;
 $error = null;
 $success = null;
+$lockFile = __DIR__ . '/.installed';
+$configExists = file_exists(__DIR__ . '/../config/config.php');
+$locked = file_exists($lockFile) || $configExists;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($locked) {
+        $error = 'Already installed. Delete config/config.php and install/.installed only if you intend to reinstall.';
+    } else {
     $host = trim($_POST['db_host'] ?? 'localhost');
     $name = trim($_POST['db_name'] ?? '');
     $user = trim($_POST['db_user'] ?? '');
@@ -28,8 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
             ]);
 
-            $schema = file_get_contents(__DIR__ . '/schema.sql');
-            $pdo->exec($schema);
+            // helpers.php is not always loaded when config is missing
+            require_once __DIR__ . '/../includes/helpers.php';
+            run_sql_file($pdo, __DIR__ . '/schema.sql');
 
             $hash = password_hash($adminPass, PASSWORD_DEFAULT);
             $stmt = $pdo->prepare(
@@ -57,16 +64,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($written === false) {
                 throw new RuntimeException('Could not write config/config.php. Create it manually from config.sample.php.');
             }
+            @file_put_contents($lockFile, date('c') . "\n");
 
             $success = 'Installation complete. You can log in now.';
             $installed = true;
+            $locked = true;
         } catch (Throwable $e) {
             $error = 'Install failed: ' . $e->getMessage();
         }
     }
+    }
 }
 
 $configExists = file_exists(__DIR__ . '/../config/config.php');
+$locked = file_exists($lockFile) || $configExists;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -84,9 +95,9 @@ $configExists = file_exists(__DIR__ . '/../config/config.php');
     <?php if ($error): ?><div class="flash flash-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
     <?php if ($success): ?><div class="flash flash-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
-    <?php if ($installed || $configExists): ?>
+    <?php if ($installed || $locked): ?>
       <p><a class="btn btn-primary" href="../login.php">Go to login</a></p>
-      <p class="muted tiny">For security, delete or protect the <code>install/</code> folder after setup.</p>
+      <p class="muted tiny">Installer is locked. For security, also delete the <code>install/</code> folder on production.</p>
     <?php else: ?>
     <form method="post" class="stack">
       <label>DB host <input name="db_host" value="localhost" required></label>

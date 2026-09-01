@@ -6,7 +6,7 @@ require_once __DIR__ . '/config/bootstrap.php';
 $user = require_login();
 
 $projects = accessible_projects($pdo, $user);
-$projectIds = array_column($projects, 'id');
+$projectIds = project_ids($projects);
 $members = active_users($pdo);
 
 $filterProject = isset($_GET['project']) ? (int) $_GET['project'] : 0;

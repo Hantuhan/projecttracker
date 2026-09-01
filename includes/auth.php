@@ -9,10 +9,31 @@ function current_user(): ?array
 
 function require_login(): array
 {
+    global $pdo;
     $user = current_user();
     if (!$user) {
         redirect('login.php');
     }
+
+    // Re-validate against DB so rejected/deleted/demoted users lose access
+    if (isset($pdo) && $pdo instanceof PDO) {
+        $stmt = $pdo->prepare('SELECT id, name, email, role, status FROM users WHERE id = ? LIMIT 1');
+        $stmt->execute([(int) $user['id']]);
+        $row = $stmt->fetch();
+        if (!$row || ($row['status'] ?? '') !== 'active') {
+            logout_user();
+            flash('error', 'Your account is no longer active. Please contact an admin.');
+            redirect('login.php');
+        }
+        $_SESSION['user'] = [
+            'id' => (int) $row['id'],
+            'name' => $row['name'],
+            'email' => $row['email'],
+            'role' => $row['role'],
+        ];
+        $user = $_SESSION['user'];
+    }
+
     return $user;
 }
 
@@ -46,6 +67,7 @@ function attempt_login(PDO $pdo, string $email, string $password)
         return 'rejected';
     }
 
+    session_regenerate_id(true);
     $_SESSION['user'] = [
         'id' => (int) $user['id'],
         'name' => $user['name'],
@@ -78,7 +100,11 @@ function generate_temp_password(int $length = 10): string
 
 function active_users(PDO $pdo): array
 {
-    return $pdo->query(
+    $rows = $pdo->query(
         "SELECT id, name, email, role FROM users WHERE status = 'active' ORDER BY name"
     )->fetchAll();
+    foreach ($rows as &$row) {
+        $row['id'] = (int) $row['id'];
+    }
+    return $rows;
 }

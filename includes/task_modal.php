@@ -77,7 +77,7 @@ $members = $members ?? active_users($pdo);
       <div class="modal-actions">
         <button type="button" class="btn btn-danger" id="task-delete" hidden>Delete</button>
         <div class="spacer"></div>
-        <button type="button" class="btn" data-close-modal id="task-done-btn">Done</button>
+        <button type="button" class="btn" data-close-modal id="task-done-btn">Close</button>
         <button type="submit" class="btn btn-primary" id="task-save-btn">Save</button>
       </div>
     </form>
