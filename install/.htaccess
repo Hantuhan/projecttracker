@@ -1,0 +1,4 @@
+# Block web access to install lock file
+<Files ".installed">
+  Require all denied
+</Files>

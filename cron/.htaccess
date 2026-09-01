@@ -1,0 +1,2 @@
+# Cron scripts should be called with ?key=... only; block directory listing
+Options -Indexes
