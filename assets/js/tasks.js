@@ -257,7 +257,6 @@
     const payload = Object.fromEntries(new FormData(form).entries());
     if (!payload.assignee_id) payload.assignee_id = null;
     if (!payload.due_date) payload.due_date = null;
-    const isNew = !payload.id;
     if (!payload.id) delete payload.id;
     else payload.id = Number(payload.id);
 
@@ -266,12 +265,9 @@
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      if (isNew && data.task && data.task.id) {
-        dirtyAfterCreate = true;
-        fillForm(Object.assign({}, data.task, { subtasks: [], comments: [] }));
-        return;
+      if (data.task) {
+        location.reload();
       }
-      location.reload();
     } catch (err) {
       alert(err.message);
     }
